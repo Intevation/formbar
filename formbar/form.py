@@ -1,14 +1,13 @@
+from collections import namedtuple
 import logging
 import importlib
 import inspect
 import sqlalchemy as sa
-from formbar.renderer import FormRenderer
 from formbar.fields import FieldFactory
 from formbar.converters import (
     DeserializeException, from_python, to_python
 )
-from formbar.renderer import FormRenderer, get_renderer
-from formbar.rules import Rule, Expression
+from formbar.renderer import FormRenderer
 
 log = logging.getLogger(__name__)
 
@@ -103,12 +102,14 @@ class FormDataprovider(object):
 
     def __init__(self, ctx):
         self.ctx = ctx
-        """Can be anything. E.g db connection, request. It depends on the context."""
+        """Can be anything. E.g db connection, request. It depends on
+        the context."""
 
     def get_options(self, name):
         if hasattr(self, name+"_options"):
             return getattr(self, name+"_options")
         return []
+
 
 class Validator(object):
     """Validator class for external validators. External validators can
@@ -152,6 +153,26 @@ class Validator(object):
             return False
 
 
+# data for validate
+Dependency = namedtuple("Dependency",
+                        "params db settings translate item method "
+                        "accept_language registry")
+Registry = namedtuple("Registry", "settings")
+
+
+def create_dependencies(request):
+    if request is None:
+        return None
+    return Dependency(request.params,
+                      request.db,
+                      request.registry.settings,
+                      request.translate,
+                      request.context.item,
+                      request.method,
+                      request.accept_language,
+                      Registry(request.registry.settings))
+
+
 class Form(object):
     """Class for forms. The form will take care for rendering the form,
     validating the submitted data and saving the data back to the
@@ -171,7 +192,7 @@ class Form(object):
     def __init__(self, config, item=None, dbsession=None, translate=None,
                  change_page_callback={}, renderers={}, request=None,
                  csrf_token=None, eval_url=None, url_prefix="", locale=None,
-                 values=None, timezone=None):
+                 values=None, timezone=None, dependencies=None):
         """Initialize the form with ``Form`` configuration instance and
         optional an SQLAlchemy mapped object.
 
@@ -235,7 +256,8 @@ class Form(object):
         self.current_page = 0
         """Number of the currently selected page"""
         if self.pages:
-            self.last_page = [int(p.attrib.get("id").strip("p")) for p in self.pages][-1]
+            self.last_page = [int(p.attrib.get("id").strip("p"))
+                              for p in self.pages][-1]
         """Number of the last configured page"""
         self.change_page_callback = change_page_callback
         """Dictionary with some parameters used to call an URL when the
@@ -283,6 +305,9 @@ class Form(object):
         """Form wide errors. This list contains errors which affect
         the entire form and not specific fields. These errors are show
         at the top of evere page."""
+
+        # dependiencies are used for validators.
+        self.dependencies = dependencies
 
     def _set_current_field_data(self, data):
         for key in self.fields:
@@ -494,7 +519,7 @@ class Form(object):
         if self.submitted_data:
             self.prefill_form_private_fields()
             self._set_current_field_data(self.converted)
-            self.merged_data = self.converted # for rule evaluation in form
+            self.merged_data = self.converted  # for rule evaluation in form
         else:
             self._set_current_field_data(self.merged_data)
         self._set_previous_field_data(previous_values)
@@ -607,7 +632,7 @@ class Form(object):
         # Custom validation. User defined external validators.
         for validator in self.external_validators:
             if (validator._field not in converted
-                and validator._field is not None):
+                    and validator._field is not None):
                 # Ignore validator if the value can't be converted.
                 continue
             if not validator.check(converted):
@@ -648,16 +673,3 @@ class Form(object):
             if not self._item.id:
                 self._dbsession.add(self._item)
         return self._item
-
-    #def __repr__(self):
-    #    def f(field):
-    #        name = field.name
-    #        value = field.get_value()
-    #        errors = field.has_errors
-    #        warnings = field.has_warnings
-    #        return "{}:\t{} \terrors: {} warnings: {}".format(name, value, errors, warnings)
-
-    #    fields = [f(v) for _, v in self.fields.iteritems()]
-    #    lines = "\n".join(fields)
-    #    lines += "\nhas errors: {}".format(self.has_errors())
-    #    return lines
