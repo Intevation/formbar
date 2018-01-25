@@ -121,7 +121,11 @@ var ruleEngine = function () {
             case 'string':
                 return (!stringContainsArray(v))?"'"+v.replace(/\n/g,'').replace(/'/g,'\\\'')+"'":v;
             case 'stringselection':
-                return currentValue.value || "None";
+                if (currentValue.value) {
+                    return "'"+currentValue.value+"'";
+                } else {
+                    return "None"
+                }
             case 'intselection':
                 // "" in Checkboxes is a hack to simulate an empty
                 // selection. For rule evaluation we can/must remove it.
@@ -794,9 +798,9 @@ var form = function (inputFilter, ruleEngine) {
                 case 'TEXTAREA':
                     changeEvent(e);
                     if (form.isDirty()) {
-                        $("div.formbar-form").trigger("dirty");
+                        setTimeout(function(){$("div.formbar-form").trigger("dirty");}, 300);
                     } else {
-                        $("div.formbar-form").trigger("clean");
+                        setTimeout(function(){$("div.formbar-form").trigger("clean");}, 300);
                     }
                     break;
                 default:

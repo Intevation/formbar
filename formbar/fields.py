@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import ast
 import logging
 import datetime
 import re
@@ -760,7 +761,8 @@ class SelectionField(CollectionField):
                 elif isinstance(self, IntSelectionField):
                     value = int(option[1])
                 elif isinstance(self, BooleanSelectionField):
-                    value = bool(option[1])
+                    from formbar.converters import to_boolean
+                    value = to_boolean(option[1])
                 else:
                     value = option[1]
                 options.append((option[0], value, option[2]))
@@ -792,16 +794,17 @@ class SelectionField(CollectionField):
         # '2']" will be converted into the _string_ "{1,2,''}". In
         # this case we need to convert the value back into a list.
         serialized = []
-        if ((value.startswith("{") and value.endswith("}")) or
-           (value.startswith("[") and value.endswith("]"))):
+        if value.startswith("{") and value.endswith("}"):
             value = value.strip("[").strip("]").strip("{").strip("}")
+        elif value.startswith("[") and value.endswith("]"):
+            return ast.literal_eval(value)
         for v in value.split(","):
             if not value:
                 continue
             if isinstance(self, IntSelectionField):
                 value = int(v)
             elif isinstance(self, BooleanSelectionField):
-                value = bool(v)
+                value = self._str_to_bool(v)
             else:
                 value = unicode(v)
             serialized.append(value)
@@ -814,6 +817,13 @@ class SelectionField(CollectionField):
         # will be converted into the _string_ "{1,2,''}".
         return value
 
+    def _str_to_bool(self, string):
+        if string is None:
+            return None
+        elif string == "False":
+            return False
+        else:
+            return True
 
 class IntSelectionField(SelectionField):
     """Field which can have one or more of predefined values. The

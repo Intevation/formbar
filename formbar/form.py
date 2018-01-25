@@ -592,11 +592,12 @@ class Form(object):
                     else:
                         self._add_error(fieldname, rule.msg)
 
-            for src, msg in field.get_validators():
+            for src, msg, triggers in field.get_validators():
                 src = src.split(".")
                 checker = getattr(importlib.import_module(".".join(src[0:-1])),
                                   src[-1])
-                validator = Validator(fieldname, msg, checker, self)
+                validator = Validator(fieldname, msg, checker, self,
+                                      triggers=triggers)
                 if not validator.check(converted):
                     if validator._triggers == "error":
                         self._add_error(validator._field, validator._error)

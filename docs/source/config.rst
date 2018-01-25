@@ -189,6 +189,7 @@ Attribute   Description
 =========   ===========
 src         The *src* attribute is the modul path to the callable. The path is used to import the validator dynamically at runtime.
 msg         The message which is displayed if the evaluation of the validation fails.
+triggers    Flag which defines which type of message a the rule will trigger if the evaluation fails. Be be error (default) or warning.
 =========   ===========
 
 See :ref:`external_validator` for more details, how to write such a
@@ -979,7 +980,8 @@ which field the error message will be shown. The 'context' is optional
 and can be anything additional which is needed for the validation.
 
 The function should return True in case the validation succeeds or either
-return False or raise an exception in case of validation errors. If the method
+return False or raise an :class:`.ValidationException` in case of validation
+errors. If the method
 raises an exception the message of the exception will be used as error
 message. The validator can be added in two differen ways.
 

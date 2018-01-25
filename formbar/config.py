@@ -701,7 +701,8 @@ class Field(Config):
             # Import dynamically the validator
             src = validator.attrib.get("src")
             msg = validator.attrib.get("msg")
-            validators.append((src, msg))
+            triggers = validator.attrib.get("triggers", "error")
+            validators.append((src, msg, triggers))
         return validators
 
 
