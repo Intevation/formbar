@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import ast
 import logging
 import datetime
 import re
@@ -793,9 +794,10 @@ class SelectionField(CollectionField):
         # '2']" will be converted into the _string_ "{1,2,''}". In
         # this case we need to convert the value back into a list.
         serialized = []
-        if ((value.startswith("{") and value.endswith("}")) or
-           (value.startswith("[") and value.endswith("]"))):
+        if value.startswith("{") and value.endswith("}"):
             value = value.strip("[").strip("]").strip("{").strip("}")
+        elif value.startswith("[") and value.endswith("]"):
+            return ast.literal_eval(value)
         for v in value.split(","):
             if not value:
                 continue
